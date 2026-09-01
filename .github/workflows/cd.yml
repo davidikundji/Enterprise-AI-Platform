@@ -1,0 +1,120 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ecs-dev-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Amazon ECS
+    runs-on: ubuntu-latest
+
+    # Deploy only when:
+    # 1. CI succeeded
+    # 2. CI was triggered by a push
+    # 3. The push was to main
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+
+    steps:
+      # ---------------------------------------------------------
+      # Checkout the exact commit that successfully passed CI
+      # ---------------------------------------------------------
+      - name: Checkout tested commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      # ---------------------------------------------------------
+      # Authenticate to AWS using GitHub OIDC
+      # No long-lived AWS access keys are stored in GitHub
+      # ---------------------------------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: github-actions-cd-${{ github.run_id }}
+
+      # ---------------------------------------------------------
+      # Authenticate Docker to Amazon ECR
+      # ---------------------------------------------------------
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ---------------------------------------------------------
+      # Build and push an immutable image
+      # The Git commit SHA becomes the Docker image tag
+      # ---------------------------------------------------------
+      - name: Build and push Docker image
+        id: build-image
+        shell: bash
+        run: |
+          IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.event.workflow_run.head_sha }}"
+
+          echo "Building image: $IMAGE_URI"
+
+          docker build \
+            --tag "$IMAGE_URI" \
+            .
+
+          docker push "$IMAGE_URI"
+
+          echo "image=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      # ---------------------------------------------------------
+      # Discover the task definition currently used by ECS
+      # ---------------------------------------------------------
+      - name: Get current ECS task definition
+        id: task-def
+        shell: bash
+        run: |
+          TASK_DEFINITION_ARN=$(aws ecs describe-services \
+            --cluster "${{ vars.ECS_CLUSTER }}" \
+            --services "${{ vars.ECS_SERVICE }}" \
+            --query "services[0].taskDefinition" \
+            --output text)
+
+          if [ -z "$TASK_DEFINITION_ARN" ] || [ "$TASK_DEFINITION_ARN" = "None" ]; then
+            echo "Unable to determine current ECS task definition."
+            exit 1
+          fi
+
+          echo "Current task definition: $TASK_DEFINITION_ARN"
+          echo "arn=$TASK_DEFINITION_ARN" >> "$GITHUB_OUTPUT"
+
+      # ---------------------------------------------------------
+      # Replace only the application container image
+      # ---------------------------------------------------------
+      - name: Render new ECS task definition
+        id: render-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition-arn: ${{ steps.task-def.outputs.arn }}
+          container-name: caterpillar-ai-devops-platform-api
+          image: ${{ steps.build-image.outputs.image }}
+
+      # ---------------------------------------------------------
+      # Register the new task definition revision and deploy it
+      # ---------------------------------------------------------
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
+          service: ${{ vars.ECS_SERVICE }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          wait-for-service-stability: true

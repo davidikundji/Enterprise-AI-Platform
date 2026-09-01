@@ -126,7 +126,8 @@ data "aws_iam_policy_document" "deployment" {
 
     actions = [
       "ecs:RegisterTaskDefinition",
-      "ecs:DescribeTaskDefinition"
+      "ecs:DescribeTaskDefinition",
+      "ecs:TagResource"
     ]
 
     resources = ["*"]

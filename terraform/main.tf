@@ -116,3 +116,17 @@ module "monitoring" {
   cpu_alarm_threshold    = var.cpu_alarm_threshold
   memory_alarm_threshold = var.memory_alarm_threshold
 }
+
+module "github_oidc" {
+  source = "./modules/github_oidc"
+
+  github_owner      = "davidikundji"
+  github_repository = "Enterprise-ai-devops-platform"
+  github_branch     = "main"
+
+  ecr_repository_arn = module.ecr.repository_arn
+  ecs_service_arn    = module.ecs.service_arn
+
+  execution_role_arn = module.iam.execution_role_arn
+  task_role_arn      = module.iam.task_role_arn
+}

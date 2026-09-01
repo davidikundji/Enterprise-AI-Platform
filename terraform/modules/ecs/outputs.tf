@@ -27,3 +27,8 @@ output "log_group_name" {
   description = "CloudWatch log group used by the ECS application"
   value       = aws_cloudwatch_log_group.ecs.name
 }
+
+output "service_arn" {
+  description = "ARN of the ECS service"
+  value       = aws_ecs_service.main.arn
+}

@@ -47,7 +47,7 @@ data "aws_iam_policy_document" "github_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:${var.github_owner}/${var.github_repository}:ref:refs/heads/${var.github_branch}"
+        "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repository}@${var.github_repository_id}:ref:refs/heads/${var.github_branch}"
       ]
     }
   }
@@ -118,8 +118,8 @@ data "aws_iam_policy_document" "deployment" {
     ]
   }
 
-  # Registering a new task definition requires "*" because
-  # the new task-definition ARN does not exist beforehand.
+  # Registering a new task definition requires "*"
+  # because the new revision does not exist beforehand.
   statement {
     sid    = "ECSTaskDefinition"
     effect = "Allow"
@@ -132,8 +132,8 @@ data "aws_iam_policy_document" "deployment" {
     resources = ["*"]
   }
 
-  # GitHub may pass only the two ECS roles already
-  # approved for this application.
+  # GitHub may pass only the approved ECS execution
+  # and application task roles.
   statement {
     sid    = "PassECSTaskRoles"
     effect = "Allow"

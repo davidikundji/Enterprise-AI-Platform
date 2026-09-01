@@ -120,9 +120,11 @@ module "monitoring" {
 module "github_oidc" {
   source = "./modules/github_oidc"
 
-  github_owner      = "davidikundji"
-  github_repository = "Enterprise-ai-devops-platform"
-  github_branch     = "main"
+  github_owner         = "davidikundji"
+  github_owner_id      = "269061648"
+  github_repository    = "Enterprise-ai-devops-platform"
+  github_repository_id = "1353129765"
+  github_branch        = "main"
 
   ecr_repository_arn = module.ecr.repository_arn
   ecs_service_arn    = module.ecs.service_arn

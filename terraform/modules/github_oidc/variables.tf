@@ -3,8 +3,18 @@ variable "github_owner" {
   type        = string
 }
 
+variable "github_owner_id" {
+  description = "Immutable numeric ID of the GitHub repository owner"
+  type        = string
+}
+
 variable "github_repository" {
   description = "GitHub repository name"
+  type        = string
+}
+
+variable "github_repository_id" {
+  description = "Immutable numeric ID of the GitHub repository"
   type        = string
 }
 

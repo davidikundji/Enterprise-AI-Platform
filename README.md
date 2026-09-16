@@ -1,6 +1,16 @@
-# Enterprise AI DevOps Platform
+# Enterprise AI Platform
 
-A production-style AWS DevOps project that deploys a containerized FastAPI application integrated with Amazon Bedrock using Terraform, Docker, Amazon ECS Fargate, Amazon ECR, GitHub Actions, IAM/OIDC, Application Load Balancing, Auto Scaling, and CloudWatch.
+[![CI](https://github.com/davidikundji/Enterprise-AI-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/davidikundji/Enterprise-AI-Platform/actions/workflows/ci.yml)
+[![CD](https://github.com/davidikundji/Enterprise-AI-Platform/actions/workflows/cd.yml/badge.svg)](https://github.com/davidikundji/Enterprise-AI-Platform/actions/workflows/cd.yml)
+![AWS](https://img.shields.io/badge/AWS-Cloud-orange?logo=amazonaws)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform)
+![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker)
+![ECS](https://img.shields.io/badge/Amazon%20ECS-Fargate-FF9900?logo=amazonecs)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?logo=githubactions)
+![Python](https://img.shields.io/badge/Python-FastAPI-3776AB?logo=python)
+![Amazon Bedrock](https://img.shields.io/badge/Amazon%20Bedrock-Generative%20AI-8A2BE2)
+
+A production-style AWS AI/DevOps platform that deploys a containerized FastAPI application integrated with Amazon Bedrock using Terraform, Docker, Amazon ECS Fargate, Amazon ECR, GitHub Actions, IAM/OIDC, Application Load Balancing, Auto Scaling, and CloudWatch.
 
 The project demonstrates how to build, secure, deploy, monitor, and continuously deliver an AI-enabled application on AWS without storing long-lived AWS credentials in GitHub.
 
@@ -18,6 +28,36 @@ The infrastructure is fully defined with Terraform and was deployed across multi
 The CI/CD pipeline was implemented with GitHub Actions. CI validates the application, Terraform, and Docker build. CD runs only after CI succeeds on `main`, authenticates to AWS through GitHub OIDC, builds an immutable Docker image tagged with the Git commit SHA, pushes it to ECR, registers a new ECS task-definition revision, and updates the ECS service.
 
 > **Cost note:** The AWS infrastructure used for project validation was destroyed after testing to prevent ongoing cloud charges. The source code and Terraform configuration remain in the repository so the environment can be recreated when needed.
+
+---
+
+## Project Evidence
+
+The following screenshots capture key milestones from the completed deployment and validation.
+
+### Successful GitHub Actions CD Deployment
+
+The CD workflow authenticated to AWS using OIDC, logged in to Amazon ECR, built and pushed the Docker image, retrieved and rendered the ECS task definition, and deployed the new revision successfully.
+
+![Successful GitHub Actions CD deployment](docs/screenshots/cd-success.png)
+
+### Live Application Health Check
+
+After deployment, the application was tested through the public Application Load Balancer. The `/health` endpoint returned `healthy`, confirming that the ECS service and load-balancer health checks were working.
+
+![Live application health check](docs/screenshots/health-check.png)
+
+### Amazon Bedrock Integration Test
+
+A live request was sent to the `/generate` endpoint through the Application Load Balancer. The FastAPI service running on ECS successfully invoked Amazon Bedrock and returned an AI-generated response.
+
+![Amazon Bedrock generate endpoint test](docs/screenshots/bedrock-generate.png)
+
+### Infrastructure Cleanup
+
+After validation, the AWS infrastructure was destroyed to prevent unnecessary ongoing cloud costs. Terraform completed the final cleanup successfully.
+
+![Terraform infrastructure destroy](docs/screenshots/terraform-destroy.png)
 
 ---
 
